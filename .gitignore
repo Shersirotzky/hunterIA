@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+.tools/
+coverage/
+playwright-report/
+test-results/
+*.log
+*.tsbuildinfo
+.vercel
+/private/
+.DS_Store
+Imagem do ChatGPT *.png
