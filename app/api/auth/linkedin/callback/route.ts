@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   }
 
   const profile = await profileResponse.json();
-  const response = NextResponse.redirect(new URL("/admin?linkedin=connected", request.url));
+  const response = NextResponse.redirect(new URL("/signup?linkedin=connected", request.url));
   const session = await getIronSession<AppSession>(request, response, getSessionOptions());
   session.identity = {
     ownerUserId: String(profile.sub),

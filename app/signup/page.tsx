@@ -10,6 +10,7 @@ export default function SignUpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loginMode, setLoginMode] = useState(searchParams.get("mode") === "login");
+  const linkedinConnected = searchParams.get("linkedin") === "connected";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export default function SignUpPage() {
         <span className="eyebrow">ETAPA 1 DE 2</span>
         <h1>{loginMode ? "Entre no seu espaço" : "Crie sua conta"}</h1>
         <p className="muted">{loginMode ? "Use seu e-mail e senha para continuar." : "Use seu Gmail ou qualquer outro e-mail. Depois você confirma seu perfil profissional."}</p>
+        {linkedinConnected && <p className="notice">LinkedIn conectado. Crie ou acesse sua conta Hunter IA para vincular essa identidade ao seu perfil profissional.</p>}
         <form onSubmit={submit} className="auth-form">
           <label>E-mail<input type="email" autoComplete="email" required value={username} onChange={(event) => setUsername(event.target.value)} /></label>
           <label>Senha<input type="password" autoComplete={loginMode ? "current-password" : "new-password"} minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
