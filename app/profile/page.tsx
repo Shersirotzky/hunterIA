@@ -1,3 +1,12 @@
-import { getLinkedInIdentity } from "@/lib/session";
-
-export default async function ProfilePage() { const identity = await getLinkedInIdentity(); return <main className="page-stack"><div><span className="eyebrow">PERFIL PROFISSIONAL</span><h1>Seu contexto de carreira</h1><p className="muted">Use um currículo ou edite os campos manualmente. O perfil só poderá orientar automações depois da sua aprovação.</p></div><section className="panel profile-panel"><div className="profile-row"><div className="avatar">{identity?.name?.slice(0, 1) ?? "?"}</div><div><h2>{identity?.name ?? "Perfil ainda não conectado"}</h2><p className="muted">{identity?.email ?? "Conecte o LinkedIn ou crie sua conta para iniciar."}</p></div></div><div className="notice">Importação de currículo em PDF/DOCX e dados exportados do LinkedIn: aguardando backend Convex autenticado.</div><div className="form-grid"><label>Cargos desejados<input placeholder="Ex.: Analista de QA, Analista de testes" /></label><label>Localização<input placeholder="Ex.: Fortaleza, remoto" /></label><label>Modalidade<select defaultValue=""><option value="" disabled>Selecione</option><option>Remoto</option><option>Híbrido</option><option>Presencial</option></select></label><label>Salário mínimo<input placeholder="Ainda não informado" /></label></div><button className="button primary" type="button" disabled>Salvar após conectar o Convex</button></section></main>; }
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
+import { convexAuthNextjsAccessToken } from "@/lib/convexAuth";
+import { Editor } from "./editor";
+import { Submit } from "./submit";
+import { approveProfile } from "./actions";
+export default async function ProfilePage() {
+  const token = await convexAuthNextjsAccessToken();
+  if (!token) return <main className="page-stack"><h1>Perfil profissional</h1><a href="/signin">Entre para editar seu perfil</a></main>;
+  const profile = await fetchQuery(api.profile.get, {}, { token });
+  return <main className="page-stack"><h1>Seu perfil profissional</h1><p>Estado do perfil: {profile?.sourceStatus === "approved" ? "Aprovado" : "Aguardando revisão"}</p><a className="button secondary" href="/api/auth/linkedin?mode=connect">Conectar LinkedIn</a><section className="panel"><Editor profile={profile} /></section>{profile && <form action={approveProfile}><Submit>Revisei e aprovo este perfil</Submit></form>}</main>;
+}

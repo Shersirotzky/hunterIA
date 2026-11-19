@@ -8,23 +8,34 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "validate:profile": "node scripts/validate-profile.mjs"
+    "validate:profile": "node scripts/validate-profile.mjs",
+    "test": "node --import tsx --test tests/job-domain.test.mjs tests/profile-domain.test.mjs tests/linkedin-policy.test.ts tests/resume-parser.test.ts tests/resume-proof.test.ts",
+    "test:e2e": "playwright test",
+    "test:auth-backend": "node --import tsx --test tests/backend-auth.test.ts"
   },
   "dependencies": {
-    "@convex-dev/auth": "^2.0.0",
+    "@convex-dev/auth": "2.0.0",
     "@tailwindcss/postcss": "^4.1.0",
     "convex": "^1.28.2",
+    "fast-xml-parser": "^5.12.1",
+    "fflate": "^0.8.3",
     "iron-session": "^9.1.0",
+    "jose": "^6.2.18",
+    "mammoth": "^1.13.0",
     "next": "^16.4.6",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwindcss": "^4.1.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.0"
   }
 }

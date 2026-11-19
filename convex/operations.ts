@@ -19,15 +19,20 @@ export const ensureSettings = mutation({ args: {}, handler: async (ctx) => {
   return await ctx.db.insert("ownerSettings", { ownerUserId, timezone: "America/Fortaleza", minimumMatchScore: 85, dailyApplicationLimit: 10, automationsPaused: true, emailMonitoringEnabled: false, pushNotificationsEnabled: false, createdAt: now, updatedAt: now });
 }});
 
-export const reserveApplicationSlot = mutation({ args: { jobId: v.id("jobs"), platform: v.string(), dailyBucket: v.string() }, handler: async (ctx, args) => {
+export const reserveApplicationSlot = mutation({ args: { jobId: v.id("jobs"), platform: v.string(), dailyBucket: v.optional(v.string()) }, handler: async (ctx, args) => {
   const ownerUserId = await requireOwner(ctx);
   const settings = await ctx.db.query("ownerSettings").withIndex("by_owner", (q) => q.eq("ownerUserId", ownerUserId)).unique();
   if (!settings || settings.automationsPaused) throw new Error("Automation paused");
+  const job = await ctx.db.get(args.jobId);
+  if (!job || job.ownerUserId !== ownerUserId || job.status !== "open") throw new Error("Job unavailable");
+  const authorization = await ctx.db.query("platformAuthorizations").withIndex("by_owner_platform", q => q.eq("ownerUserId", ownerUserId).eq("platform", args.platform)).unique();
+  if (!authorization?.enabled || !authorization.autoSubmit || authorization.paused || !authorization.approvedAt) throw new Error("Platform not authorized");
+  const dailyBucket = new Intl.DateTimeFormat("en-CA", { timeZone: settings.timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const duplicate = await ctx.db.query("applications").withIndex("by_owner_job", (q) => q.eq("ownerUserId", ownerUserId).eq("jobId", args.jobId)).unique();
   if (duplicate) throw new Error("Application already exists");
   const todays = await ctx.db.query("applications").withIndex("by_owner", (q) => q.eq("ownerUserId", ownerUserId)).collect();
-  const used = todays.filter((item) => item.dailyBucket === args.dailyBucket && !["cancelled", "failed"].includes(item.status)).length;
+  const used = todays.filter((item) => item.dailyBucket === dailyBucket && !["cancelled", "failed"].includes(item.status)).length;
   if (used >= settings.dailyApplicationLimit) throw new Error("Daily application limit reached");
   const now = Date.now();
-  return await ctx.db.insert("applications", { ownerUserId, jobId: args.jobId, platform: args.platform, dailyBucket: args.dailyBucket, reservedAt: now, status: "preparing", createdAt: now, updatedAt: now });
+  return await ctx.db.insert("applications", { ownerUserId, jobId: args.jobId, platform: args.platform, dailyBucket, reservedAt: now, status: "preparing", createdAt: now, updatedAt: now });
 }});

@@ -1,32 +1,33 @@
 # Hunter IA
 
-Aplicação privada para descoberta, análise e acompanhamento de oportunidades profissionais.
+Assistente de carreira multiusuário em Next.js, React, TypeScript e Convex.
 
-## Estado atual
+## Desenvolvimento
 
-Fase 1 iniciada com Next.js, TypeScript e schema Convex. O deployment informado é:
+1. `npm ci`
+2. Configure as variáveis de `.env.example` em `.env.local` sem versionar segredos.
+3. `npx convex dev` — configure um deployment **local** para testes simulados.
+4. `npm run dev`
 
-- Cloud: `https://trustworthy-capybara-295.convex.cloud`
-- HTTP Actions: `https://trustworthy-capybara-295.convex.site`
+Produção usa `https://compassionate-swan-798.convex.cloud`. A URL antiga `trustworthy-capybara-295` não é o destino de produção usado pelo frontend atual.
 
-O endpoint HTTP atualmente responde que não há HTTP Actions habilitadas. A autenticação e as integrações externas permanecem bloqueadas até o deployment ser configurado.
+## Fluxos
 
-## Validação da fundação
+- E-mail/senha continua disponível; LinkedIn usa a mesma sessão Convex, com identidade estável por candidato.
+- Perfil importado exige revisão. Campos desconhecidos são completados pelo candidato, sem inventar fatos.
+- Vagas consultadas por APIs públicas permitidas. Greenhouse suporta leitura; envio integrado requer credencial da empresa e não é habilitado sem ela.
+- Rascunhos guardam os dados usados. Abrir ou preparar não comprova envio. Encaminhamento externo e confirmação do candidato são identificados separadamente.
+- Perfil, consultas, mutations e arquivos validam o proprietário autenticado. A apresentação e login podem ser públicos; dados profissionais permanecem privados.
+- Arquivos pessoais em `private/` e `.env.*.local` são excluídos do Git e do deploy.
 
-- TypeScript direto: aprovado.
-- `next build --webpack`: aprovado.
-- `npm audit --omit=dev`: 0 vulnerabilidades conhecidas.
-- Build Turbopack: bloqueado pelo ambiente local ao tentar abrir uma porta durante o processamento de CSS; Webpack foi usado como validação equivalente.
+## Verificação
 
-## Segurança inicial
+- `npm run typecheck`
+- `npm test`
+- `npm run test:e2e` (deployment local; nunca usa empresas reais para inscrições)
+- `npm run test:auth-backend` (backend local ativo)
+- `npm run build`
 
-- O dashboard deve permanecer privado.
-- `OWNER_USER_ID` será a única identidade autorizada.
-- O limite padrão é de 10 candidaturas por dia.
-- A compatibilidade mínima padrão é 85.
-- O fuso padrão é `America/Fortaleza`.
-- Automação começa pausada até uma plataforma ser explicitamente allowlisted.
+Veja [autenticação LinkedIn](docs/linkedin-auth.md) e [ranking e fontes](app/jobs/RANKING.md). Importações de currículo preservam o original privado e apresentam o texto para conferência. OCR e enriquecimento completo de histórico via LinkedIn não são presumidos.
 
-## Verificação local
-
-O ambiente original não possuía `npm`; foi usado um npm local temporário para instalar as dependências e validar a fundação. O diretório `.tools/` é ignorado pelo Git.
+A busca automática agendada e o envio automático continuam desativados. O endpoint de cron protegido informa esse estado; este fluxo entrega busca e candidatura assistidas, com consentimento explícito do candidato.

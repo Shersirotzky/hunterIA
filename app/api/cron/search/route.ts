@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     status: "blocked",
-    reason: "Convex deployment is not authenticated and no job source is enabled yet.",
+    reason: "Scheduled automation is paused. Authenticated manual search and assisted applications are available.",
     schedule: request.headers.get("x-vercel-cron-schedule"),
   }, { status: 503 });
 }

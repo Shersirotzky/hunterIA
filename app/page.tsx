@@ -1,7 +1,18 @@
 import Link from "next/link";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
+import { convexAuthNextjsAccessToken } from "@/lib/convexAuth";
 
 const emptyCards = [["Vagas compatíveis", "Ainda sem dados"], ["Candidaturas", "Ainda sem dados"], ["Entrevistas", "Ainda sem dados"]];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const token = await convexAuthNextjsAccessToken();
+  if (token) {
+    const [profile, jobs, applications] = await Promise.all([
+      fetchQuery(api.profile.get, {}, { token }), fetchQuery(api.jobs.list, {}, { token }), fetchQuery(api.jobs.applications, {}, { token }),
+    ]);
+    const recommended = jobs.filter(job => job.match.score >= 85);
+    return <main className="page-stack"><div><span className="eyebrow">SEU ESPAÇO DE CARREIRA</span><h1>Olá, {profile?.fullName?.split(" ")[0] ?? "candidato"}</h1><p className="muted">Seu perfil, recomendações e candidaturas ficam salvos na sua conta.</p></div><section className="panel"><h2>{profile?.sourceStatus === "approved" ? "Encontre sua próxima oportunidade" : "Revise seu perfil para continuar"}</h2><Link className="button primary" href={profile?.sourceStatus === "approved" ? "/jobs" : "/profile"}>{profile?.sourceStatus === "approved" ? "Ver vagas recomendadas" : "Revisar meu perfil"}</Link></section><section className="stats-grid">{[["Vagas recomendadas",recommended.length],["Candidaturas preparadas",applications.length],["Envios confirmados",applications.filter(a=>["confirmed","submitted"].includes(a.status)).length]].map(([label,count])=><article className="stat-card" key={label}><span>{label}</span><strong>{count}</strong></article>)}</section><section className="panel"><h2>Candidaturas recentes</h2>{applications.length ? applications.slice(-5).reverse().map(a=><p key={a._id}><Link href="/applications">{a.job?.title ?? "Vaga"}</Link> · {a.status}</p>) : <p>Abra uma vaga para preparar sua primeira candidatura.</p>}</section></main>;
+  }
   return <main><section className="hero-grid"><div><span className="eyebrow">ASSISTENTE DE CARREIRA COM IA</span><h1>Encontre oportunidades que fazem sentido para sua trajetória.</h1><p className="hero-copy">O Hunter IA organiza seu perfil, encontra vagas compatíveis, prepara candidaturas verdadeiras e mostra exatamente o que precisa da sua revisão.</p><div className="action-row"><Link className="button primary" href="/profile">Começar meu perfil</Link><Link className="button secondary" href="/jobs">Ver oportunidades</Link></div></div><div className="hero-card"><span className="status-dot" /> <strong>Automação pausada</strong><p>Configure seu perfil e aprove os dados antes de ativar qualquer fluxo.</p><Link href="/admin">Configurar agora →</Link></div></section><section className="stats-grid" aria-label="Resumo">{emptyCards.map(([label, value]) => <article className="stat-card" key={label}><span>{label}</span><strong>{value}</strong><small>Será preenchido após a primeira busca real.</small></article>)}</section><section className="section-grid"><article className="panel"><span className="eyebrow">PRÓXIMA AÇÃO</span><h2>Confirme seu perfil profissional</h2><p>Envie um currículo ou revise os dados importados do LinkedIn. Campos desconhecidos ficam pendentes e nunca são inventados.</p><Link className="text-link" href="/profile">Abrir perfil →</Link></article><article className="panel"><span className="eyebrow">BUSCA PROGRAMADA</span><h2>09:00 e 17:00</h2><p>Horários sugeridos em America/Fortaleza. A busca só será habilitada quando uma fonte permitida estiver configurada.</p><Link className="text-link" href="/admin">Ver configurações →</Link></article></section></main>;
 }

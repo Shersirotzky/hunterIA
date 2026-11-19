@@ -8,3 +8,6 @@ test-results
 .env.local
 .env.*.local
 /private/
+.convex/
+*.tsbuildinfo
+Imagem do ChatGPT *.png

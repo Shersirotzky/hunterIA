@@ -26,7 +26,10 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "customConditions": [
+      "convex-auth-internal-types"
+    ]
   },
   "include": [
     "next-env.d.ts",

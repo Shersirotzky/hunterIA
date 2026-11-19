@@ -9,9 +9,17 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as identity from "../identity.js";
+import type * as jobDomain from "../jobDomain.js";
+import type * as jobs from "../jobs.js";
 import type * as lib_authz from "../lib/authz.js";
+import type * as linkedinPolicy from "../linkedinPolicy.js";
+import type * as migration from "../migration.js";
 import type * as operations from "../operations.js";
 import type * as profile from "../profile.js";
+import type * as profileDomain from "../profileDomain.js";
+import type * as resumes from "../resumes.js";
+import type * as resumesData from "../resumesData.js";
 import type * as users from "../users.js";
 
 import type {
@@ -22,9 +30,17 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  identity: typeof identity;
+  jobDomain: typeof jobDomain;
+  jobs: typeof jobs;
   "lib/authz": typeof lib_authz;
+  linkedinPolicy: typeof linkedinPolicy;
+  migration: typeof migration;
   operations: typeof operations;
   profile: typeof profile;
+  profileDomain: typeof profileDomain;
+  resumes: typeof resumes;
+  resumesData: typeof resumesData;
   users: typeof users;
 }>;
 
