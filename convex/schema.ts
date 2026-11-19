@@ -84,8 +84,16 @@ export default defineSchema({
     profileJson: v.string(),
     tokenSecretRef: v.optional(v.string()),
     verifiedAt: v.optional(v.number()),
+    authorizationExpiresAt: v.optional(v.number()),
+    grantedScopes: v.optional(v.array(v.string())),
     ...timestamps,
   }).index("by_owner_provider", ["ownerUserId", "provider"]),
+  linkedInAttempts: defineTable({
+    ownerUserId: v.string(),
+    stateHash: v.string(),
+    expiresAt: v.number(),
+    consumed: v.boolean(),
+  }).index("by_owner", ["ownerUserId"]),
   ownerSettings: defineTable({
     ownerUserId: v.string(),
     timezone: v.string(),

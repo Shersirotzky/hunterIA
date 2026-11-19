@@ -1,34 +1,54 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import crypto from "node:crypto";
+import { fetchAction, fetchMutation, fetchQuery } from "convex/nextjs";
+import { NextRequest, NextResponse } from "next/server";
+import { api } from "@/convex/_generated/api";
+import { convexAuthNextjsAccessToken } from "@/lib/convexAuth";
+import { linkedInRequestOrigin } from "@/lib/linkedinRequest";
 
-const clientId = process.env.LINKEDIN_CLIENT_ID;
-const redirectUri = process.env.LINKEDIN_REDIRECT_URI;
+const cookieName = "linkedin_oauth_state";
+const headers = { "Cache-Control": "no-store" };
 
 export async function GET() {
-  if (!clientId || !redirectUri) {
-    return NextResponse.json(
-      { error: "LinkedIn OAuth is not configured on the server." },
-      { status: 500 },
-    );
+  try {
+    const token = await convexAuthNextjsAccessToken();
+    if (!token) return NextResponse.json({ error: "session" }, { status: 401, headers });
+    return NextResponse.json(await fetchQuery(api.linkedin.status, {}, { token }), { headers });
+  } catch {
+    console.warn("[linkedin] status unavailable");
+    return NextResponse.json({ error: "backend" }, { status: 503, headers });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const origin = linkedInRequestOrigin(request);
+  if (!origin || request.headers.get("origin") !== origin) {
+    return NextResponse.json({ error: "origin" }, { status: 403, headers });
   }
 
-  const state = crypto.randomBytes(32).toString("hex");
-  const cookieStore = await cookies();
-  cookieStore.set("linkedin_oauth_state", state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 600,
-  });
+  const body = await request.json().catch(() => null);
+  if (body?.operation !== "connect" && body?.operation !== "disconnect") {
+    return NextResponse.json({ error: "request" }, { status: 400, headers });
+  }
 
-  const authorizationUrl = new URL("https://www.linkedin.com/oauth/v2/authorization");
-  authorizationUrl.searchParams.set("response_type", "code");
-  authorizationUrl.searchParams.set("client_id", clientId);
-  authorizationUrl.searchParams.set("redirect_uri", redirectUri);
-  authorizationUrl.searchParams.set("state", state);
-  authorizationUrl.searchParams.set("scope", "openid profile email");
+  try {
+    const token = await convexAuthNextjsAccessToken();
+    if (!token) return NextResponse.json({ error: "session" }, { status: 401, headers });
+    if (body.operation === "disconnect") {
+      await fetchMutation(api.linkedin.disconnect, {}, { token });
+      const response = NextResponse.json({ expiresAt: null }, { headers });
+      response.cookies.delete(cookieName);
+      return response;
+    }
 
-  return NextResponse.redirect(authorizationUrl);
+    const result = await fetchAction(api.linkedinOAuth.start, { origin }, { token });
+    if (!result) return NextResponse.json({ error: "configuration" }, { status: 503, headers });
+    const response = NextResponse.json({ url: result.url }, { headers });
+    response.cookies.set(cookieName, result.state, {
+      httpOnly: true, secure: request.nextUrl.protocol === "https:",
+      sameSite: "lax", path: "/", maxAge: 600,
+    });
+    return response;
+  } catch {
+    console.warn("[linkedin] request to Convex failed");
+    return NextResponse.json({ error: "backend" }, { status: 503, headers });
+  }
 }

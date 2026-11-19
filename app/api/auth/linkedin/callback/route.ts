@@ -1,77 +1,49 @@
+import { fetchAction } from "convex/nextjs";
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { getIronSession } from "iron-session";
-import { getSessionOptions, type AppSession } from "@/lib/session";
+import { api } from "@/convex/_generated/api";
+import { convexAuthNextjsAccessToken } from "@/lib/convexAuth";
+import { linkedInRequestOrigin } from "@/lib/linkedinRequest";
 
-const clientId = process.env.LINKEDIN_CLIENT_ID;
-const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-const redirectUri = process.env.LINKEDIN_REDIRECT_URI;
+const cookieName = "linkedin_oauth_state";
+const stateFormat = /^[a-f0-9]{64}$/;
 
 export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error");
-  const cookieStore = await cookies();
-  const expectedState = cookieStore.get("linkedin_oauth_state")?.value;
-
-  if (error) {
-    return NextResponse.redirect(new URL(`/?linkedin_error=${encodeURIComponent(error)}`, request.url));
+  function finish(outcome: string, clearCookie = true) {
+    const query = new URLSearchParams({ linkedin: outcome });
+    const response = new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/admin?${query}`, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
+    });
+    if (clearCookie) response.cookies.delete(cookieName);
+    return response;
   }
 
-  if (!code || !state || !expectedState || state !== expectedState) {
-    return NextResponse.json({ error: "Invalid LinkedIn OAuth state." }, { status: 400 });
+  const params = request.nextUrl.searchParams;
+  const state = params.get("state") ?? "";
+  const expectedState = request.cookies.get(cookieName)?.value ?? "";
+  if (state.length !== 64 || expectedState.length !== 64
+    || !stateFormat.test(state) || !stateFormat.test(expectedState)
+    || !timingSafeEqual(Buffer.from(state), Buffer.from(expectedState))) return finish("invalid_state", false);
+
+  const origin = linkedInRequestOrigin(request);
+  if (!origin) return finish("configuration");
+
+  try {
+    const token = await convexAuthNextjsAccessToken();
+    if (!token) return finish("session");
+    const code = params.get("code") ?? undefined;
+    const error = params.get("error");
+    const knownErrors = ["access_denied", "user_cancelled_login", "user_cancelled_authorize",
+      "unauthorized_scope_error", "invalid_scope", "unauthorized_client"];
+    const result = await fetchAction(api.linkedinOAuth.complete, {
+      state, code: code && code.length <= 4096 ? code : undefined,
+      error: error ? (knownErrors.includes(error) ? error : "provider_error") : undefined,
+      origin,
+    }, { token });
+    return finish(result);
+  } catch {
+    console.warn("[linkedin] callback could not reach Convex");
+    return finish("backend");
   }
-
-  if (!clientId || !clientSecret || !redirectUri) {
-    return NextResponse.json(
-      { error: "LinkedIn OAuth is not configured on the server." },
-      { status: 500 },
-    );
-  }
-
-  const tokenResponse = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
-    }),
-    cache: "no-store",
-  });
-
-  if (!tokenResponse.ok) {
-    return NextResponse.json({ error: "LinkedIn token exchange failed." }, { status: 502 });
-  }
-
-  const token = (await tokenResponse.json()) as { access_token?: string };
-  if (!token.access_token) {
-    return NextResponse.json({ error: "LinkedIn did not return an access token." }, { status: 502 });
-  }
-
-  const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
-    headers: { Authorization: `Bearer ${token.access_token}` },
-    cache: "no-store",
-  });
-
-  if (!profileResponse.ok) {
-    return NextResponse.json({ error: "LinkedIn profile request failed." }, { status: 502 });
-  }
-
-  const profile = await profileResponse.json();
-  const response = NextResponse.redirect(new URL("/signup?linkedin=connected", request.url));
-  const session = await getIronSession<AppSession>(request, response, getSessionOptions());
-  session.identity = {
-    ownerUserId: String(profile.sub),
-    name: typeof profile.name === "string" ? profile.name : undefined,
-    email: typeof profile.email === "string" ? profile.email : undefined,
-    picture: typeof profile.picture === "string" ? profile.picture : undefined,
-    connectedAt: Date.now(),
-  };
-  await session.save();
-  response.cookies.delete("linkedin_oauth_state");
-  return response;
 }

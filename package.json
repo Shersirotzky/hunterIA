@@ -6,15 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "validate:profile": "node scripts/validate-profile.mjs"
+    "validate:profile": "node scripts/validate-profile.mjs",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@convex-dev/auth": "^2.0.0",
     "@tailwindcss/postcss": "^4.1.0",
     "convex": "^1.28.2",
-    "iron-session": "^9.1.0",
+    "jose": "^5.10.0",
     "next": "^16.4.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -22,9 +24,14 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.9.0"
+    "convex-test": "^0.0.72",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.1"
   }
 }

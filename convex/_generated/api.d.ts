@@ -10,6 +10,8 @@
 
 import type * as auth from "../auth.js";
 import type * as lib_authz from "../lib/authz.js";
+import type * as linkedin from "../linkedin.js";
+import type * as linkedinOAuth from "../linkedinOAuth.js";
 import type * as operations from "../operations.js";
 import type * as profile from "../profile.js";
 import type * as users from "../users.js";
@@ -23,6 +25,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "lib/authz": typeof lib_authz;
+  linkedin: typeof linkedin;
+  linkedinOAuth: typeof linkedinOAuth;
   operations: typeof operations;
   profile: typeof profile;
   users: typeof users;

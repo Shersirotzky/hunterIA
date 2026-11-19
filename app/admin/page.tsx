@@ -1,16 +1,13 @@
-import { getLinkedInIdentity } from "@/lib/session";
+import { LinkedInConnection } from "../components/linkedin-connection";
 
-export default async function AdminPage() {
-  const identity = await getLinkedInIdentity();
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ linkedin?: string | string[] }> }) {
+  const { linkedin } = await searchParams;
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px" }}>
       <p style={{ color: "#a1a1aa", margin: 0 }}>ÁREA ADMINISTRATIVA PRIVADA</p>
       <h1 style={{ fontSize: 40, margin: "8px 0 12px" }}>Configurar Hunter IA</h1>
-      <p style={{ color: "#a1a1aa", maxWidth: 720, lineHeight: 1.6 }}>
-        Perfil conectado: {identity?.name ?? "conta autenticada"}.
-        {identity?.email ? ` E-mail: ${identity.email}.` : " LinkedIn ainda não foi conectado."}
-      </p>
+      <LinkedInConnection outcome={typeof linkedin === "string" ? linkedin : undefined} />
 
       <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", marginTop: 32 }}>
         <article style={{ border: "1px solid #27272a", borderRadius: 16, padding: 20, background: "#18181b" }}>
