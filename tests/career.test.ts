@@ -35,7 +35,7 @@ it("creates a real session once per LinkedIn subject and prepares an isolated dr
   async function login(sub: string, proof = verifier) {
     const token = await new SignJWT({ nonce, name: "Pessoa QA", email: "qa@example.com" })
       .setProtectedHeader({ alg: "RS256", kid: "test" }).setIssuedAt().setExpirationTime("5m")
-      .setIssuer("https://www.linkedin.com").setAudience("hunter").setSubject(sub).sign(keys.privateKey);
+      .setIssuer("https://www.linkedin.com/oauth").setAudience("hunter").setSubject(sub).sign(keys.privateKey);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(Response.json({ id_token: token, expires_in: 3600 }))
       .mockResolvedValueOnce(Response.json({ keys: [{ ...await exportJWK(keys.publicKey), kid: "test" }] })));
     return t.action(api.linkedinOAuth.signIn, { origin, code: "test-code", verifier: proof });
