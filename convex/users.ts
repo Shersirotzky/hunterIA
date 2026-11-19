@@ -6,3 +6,9 @@ export const createUser = internalMutation({
   returns: v.id("users"),
   handler: async (ctx) => ctx.db.insert("users", { role: "customer", createdAt: Date.now() }),
 });
+
+export const createLinkedInUser = internalMutation({
+  args: { method: v.object({ name: v.literal("linkedin"), profile: v.object({}) }) },
+  returns: v.id("users"),
+  handler: (ctx) => ctx.db.insert("users", { role: "customer", createdAt: Date.now() }),
+});

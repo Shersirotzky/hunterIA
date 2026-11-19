@@ -63,7 +63,18 @@ export const complete = action({
     const config = configuration();
     if (!config || config.origin !== origin) return "configuration";
 
-    let subject: string;
+    const result = await exchange(config, code);
+    if (typeof result === "string") return result;
+    const { subject, expiresAt } = result;
+    const saved = await ctx.runMutation(internal.linkedin.confirm, {
+      ...pending, subject, authorizationExpiresAt: expiresAt, grantedScopes: ["openid"],
+    });
+    return saved ? "connected" : "invalid_state";
+  },
+});
+
+async function exchange(config: NonNullable<ReturnType<typeof configuration>>, code: string, nonce?: string) {
+    let profile: { subject: string; name?: string; email?: string };
     let expiresAt: number;
     try {
       const tokenResponse = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
@@ -87,8 +98,9 @@ export const complete = action({
       if (typeof token.id_token !== "string" || !token.id_token
         || !Number.isSafeInteger(token.expires_in) || token.expires_in <= 0) return "provider";
       expiresAt = Date.now() + token.expires_in * 1000;
-      const scopes: string[] = typeof token.scope === "string" ? token.scope.split(/[\s,]+/) : ["openid"];
-      if (!scopes.includes("openid") || scopes.some((scope) => scope && scope !== "openid")) return "configuration";
+      const requested = nonce ? ["openid", "profile", "email"] : ["openid"];
+      const scopes: string[] = typeof token.scope === "string" ? token.scope.split(/[\s,]+/) : requested;
+      if (!scopes.includes("openid") || scopes.some((scope) => scope && !requested.includes(scope))) return "configuration";
 
       const keys = await fetch("https://www.linkedin.com/oauth/openid/jwks", {
         signal: AbortSignal.timeout(8000),
@@ -105,15 +117,55 @@ export const complete = action({
       });
       if (!payload.sub?.trim() || payload.sub.length > 255
         || (Array.isArray(payload.aud) && payload.aud.length > 1 && payload.azp !== config.clientId)) return "provider";
-      subject = payload.sub;
+      if (nonce && payload.nonce !== nonce) return "invalid_state";
+      profile = { subject: payload.sub };
+      if (nonce) {
+        if (typeof payload.name === "string") profile.name = payload.name.slice(0, 250);
+        if (typeof payload.email === "string") profile.email = payload.email.slice(0, 320);
+        if ((!profile.name || !profile.email) && typeof token.access_token === "string") {
+          const response = await fetch("https://api.linkedin.com/v2/userinfo", {
+            headers: { Authorization: "Bearer " + token.access_token }, redirect: "error", signal: AbortSignal.timeout(8000),
+          });
+          if (response.ok) {
+            const info = await response.json();
+            if (info.sub !== profile.subject) return "provider";
+            if (!profile.name && typeof info.name === "string") profile.name = info.name.slice(0, 250);
+            if (!profile.email && typeof info.email === "string") profile.email = info.email.slice(0, 320);
+          }
+        }
+      }
     } catch (error) {
       return error instanceof errors.JWTExpired ? "expired" : "provider";
     }
 
     if (expiresAt <= Date.now()) return "expired";
-    const saved = await ctx.runMutation(internal.linkedin.confirm, {
-      ...pending, subject, authorizationExpiresAt: expiresAt, grantedScopes: ["openid"],
+    return { ...profile, expiresAt };
+}
+
+export const loginUrl = action({
+  args: { origin: v.string(), state: v.string(), nonce: v.string() },
+  handler: async (_, { origin, state, nonce }) => {
+    const config = configuration();
+    if (!config || config.origin !== origin || ![state, nonce].every(x => /^[a-f0-9]{64}$/.test(x))) return null;
+    const url = new URL("https://www.linkedin.com/oauth/v2/authorization");
+    url.search = new URLSearchParams({ response_type: "code", client_id: config.clientId,
+      redirect_uri: config.redirectUri, scope: "openid profile email", state, nonce }).toString();
+    return url.toString();
+  },
+});
+
+export const signIn = action({
+  args: { origin: v.string(), code: v.string(), verifier: v.string() },
+  handler: async (ctx, { origin, code, verifier }): Promise<{ tokens: import("@convex-dev/auth/ssr").TokenBundle } | { error: string }> => {
+    const config = configuration();
+    if (!config || config.origin !== origin) return { error: "configuration" };
+    if (!/^[a-f0-9]{64}$/.test(verifier) || !code || code.length > 4096) return { error: "invalid_state" };
+    const profile = await exchange(config, code, hash(verifier));
+    if (typeof profile === "string") return { error: profile };
+    const { expiresAt, ...identity } = profile;
+    const tokens = await ctx.runMutation(internal.career.recordLogin, {
+      ...identity, authorizationExpiresAt: expiresAt,
     });
-    return saved ? "connected" : "invalid_state";
+    return { tokens };
   },
 });

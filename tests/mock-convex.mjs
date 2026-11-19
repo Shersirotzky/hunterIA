@@ -12,6 +12,9 @@ createServer(async (request, response) => {
       case "auth:isAuthenticated":
         value = Boolean(request.headers.authorization);
         break;
+      case "linkedinOAuth:loginUrl":
+        value = null;
+        break;
       case "linkedin:status":
         value = { expiresAt };
         break;

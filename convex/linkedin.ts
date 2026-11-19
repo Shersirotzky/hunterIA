@@ -1,5 +1,6 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { components } from "./_generated/api";
 import { requireOwner } from "./lib/authz";
 import { v } from "convex/values";
 
@@ -56,8 +57,11 @@ export const confirm = internalMutation({
     const now = Date.now();
     if (!pending?.consumed || pending.stateHash !== stateHash || pending.expiresAt <= now) return false;
     const existing = await connection(ctx, args.ownerUserId);
+    const session = await ctx.runQuery(components.auth.public.getSession, { sessionId: args.ownerUserId });
+    const account = await ctx.db.query("linkedinAccounts").withIndex("by_subject", q => q.eq("subject", args.subject)).unique();
+    if (account && account.userId !== session?.userId) return false;
     const data = {
-      ...args, provider: "linkedin", profileJson: "{}",
+      ...args, ownerAccountId: session?.userId, provider: "linkedin", profileJson: "{}",
       verifiedAt: now, updatedAt: now, createdAt: existing?.createdAt ?? now,
     };
     if (existing) await ctx.db.replace(existing._id, data);

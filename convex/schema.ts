@@ -7,6 +7,7 @@ const timestamps = {
 };
 
 export default defineSchema({
+  linkedinAccounts: defineTable({ subject: v.string(), userId: v.id("users") }).index("by_subject", ["subject"]),
   users: defineTable({
     role: v.union(v.literal("customer"), v.literal("admin"), v.literal("support")),
     createdAt: v.number(),
@@ -20,6 +21,8 @@ export default defineSchema({
     ownerUserId: v.string(),
     linkedinSubject: v.string(),
     fullName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
     headline: v.optional(v.string()),
     summary: v.optional(v.string()),
     workHistoryJson: v.string(),
@@ -78,6 +81,7 @@ export default defineSchema({
     ...timestamps,
   }).index("by_owner_platform", ["ownerUserId", "platform"]),
   externalConnections: defineTable({
+    ownerAccountId: v.optional(v.string()),
     ownerUserId: v.string(),
     provider: v.string(),
     subject: v.string(),
@@ -87,7 +91,7 @@ export default defineSchema({
     authorizationExpiresAt: v.optional(v.number()),
     grantedScopes: v.optional(v.array(v.string())),
     ...timestamps,
-  }).index("by_owner_provider", ["ownerUserId", "provider"]),
+  }).index("by_owner_provider", ["ownerUserId", "provider"]).index("by_provider_subject", ["provider","subject"]),
   linkedInAttempts: defineTable({
     ownerUserId: v.string(),
     stateHash: v.string(),
@@ -113,6 +117,8 @@ export default defineSchema({
     title: v.string(),
     status: v.union(v.literal("open"), v.literal("closed"), v.literal("unknown")),
     collectedAt: v.number(),
+    skills: v.optional(v.array(v.string())),
+    description: v.optional(v.string()),
     ...timestamps,
   }).index("by_owner_source_id", ["ownerUserId", "source", "sourceId"]),
   jobMatches: defineTable({
@@ -133,6 +139,7 @@ export default defineSchema({
       v.literal("blocked"), v.literal("failed"), v.literal("unknown_result"),
       v.literal("cancelled"),
     ),
+    draft: v.optional(v.object({ name: v.string(), email: v.string(), phone: v.string(), summary: v.string(), skills: v.array(v.string()), locations: v.optional(v.array(v.string())), roles: v.optional(v.array(v.string())), modes: v.optional(v.array(v.string())) })),
     submittedAt: v.optional(v.number()),
     dailyBucket: v.optional(v.string()),
     reservedAt: v.optional(v.number()),

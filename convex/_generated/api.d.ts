@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as career from "../career.js";
 import type * as auth from "../auth.js";
 import type * as lib_authz from "../lib/authz.js";
 import type * as linkedin from "../linkedin.js";
@@ -23,6 +24,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  career: typeof career;
   auth: typeof auth;
   "lib/authz": typeof lib_authz;
   linkedin: typeof linkedin;

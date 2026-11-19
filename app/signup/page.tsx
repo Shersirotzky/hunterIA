@@ -1,5 +1,6 @@
 "use client";
 
+import { LinkedInLogin } from "../components/linkedin-login";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -39,6 +40,7 @@ export default function SignUpPage() {
         <span className="eyebrow">ETAPA 1 DE 2</span>
         <h1>{loginMode ? "Entre no seu espaço" : "Crie sua conta"}</h1>
         <p className="muted">{loginMode ? "Use seu e-mail e senha para continuar." : "Use seu Gmail ou qualquer outro e-mail. Depois você confirma seu perfil profissional."}</p>
+        <LinkedInLogin />
         <form onSubmit={submit} className="auth-form">
           <label>E-mail<input type="email" autoComplete="email" required value={username} onChange={(event) => setUsername(event.target.value)} /></label>
           <label>Senha<input type="password" autoComplete={loginMode ? "current-password" : "new-password"} minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>

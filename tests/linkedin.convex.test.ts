@@ -1,3 +1,4 @@
+import { registerCore } from "@convex-dev/auth/test";
 import { convexTest } from "convex-test";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +42,7 @@ async function mockProvider(audience = "test-client", seconds = 60, expiration: 
 
 function setup() {
   const t = convexTest(schema, modules);
+  registerCore(t);
   return { t, owner: t.withIdentity({ subject: "owner" }), other: t.withIdentity({ subject: "other" }) };
 }
 

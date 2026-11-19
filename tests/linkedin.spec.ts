@@ -83,3 +83,12 @@ test("oferece nova tentativa após falha de consulta ao Convex", async ({ page }
   await page.getByRole("button", { name: "Tentar novamente" }).click();
   await expect(page.getByRole("button", { name: "Conectar LinkedIn", exact: true })).toBeEnabled();
 });
+
+test("o primeiro acesso oferece LinkedIn e informa quando faltam credenciais", async ({ page, context }) => {
+  await context.clearCookies();
+  await page.goto("/signin");
+  await page.getByRole("button", { name: "Continuar com LinkedIn" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("credenciais");
+  await page.goto("/signup");
+  await expect(page.getByRole("button", { name: "Continuar com LinkedIn" })).toBeVisible();
+});
