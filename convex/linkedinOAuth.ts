@@ -108,7 +108,7 @@ async function exchange(config: NonNullable<ReturnType<typeof configuration>>, c
       });
       if (!keys.ok) return "provider";
       const { payload } = await jwtVerify(token.id_token, createLocalJWKSet(await keys.json()), {
-        issuer: "https://www.linkedin.com",
+        issuer: "https://www.linkedin.com/oauth",
         audience: config.clientId,
         algorithms: ["RS256"],
         requiredClaims: ["iat", "exp", "sub"],
