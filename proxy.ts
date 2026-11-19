@@ -6,4 +6,4 @@ export default convexAuthNextjsProxy(async (request, { isAuthenticated }) => {
   if (protectedPath && !(await isAuthenticated())) return nextjsProxyRedirect(request, "/signin");
 });
 
-export const config = { matcher: ["/((?!auth(?:/|$)|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icon.svg).*)"] };
+export const config = { matcher: ["/((?!auth(?:/|$)|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icons/|icon.svg).*)"] };
