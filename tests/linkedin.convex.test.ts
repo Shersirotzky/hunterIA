@@ -27,7 +27,7 @@ afterEach(() => {
 async function mockProvider(audience = "test-client", seconds = 60, expiration: number | string = "5m") {
   const idToken = await new SignJWT({})
     .setProtectedHeader({ alg: "RS256", kid: "test-key" })
-    .setIssuer("https://www.linkedin.com").setAudience(audience)
+    .setIssuer("https://www.linkedin.com/oauth").setAudience(audience)
     .setSubject("linkedin-member").setIssuedAt().setExpirationTime(expiration)
     .sign(signingKeys.privateKey);
   const jwk = await exportJWK(signingKeys.publicKey);
